@@ -1,0 +1,23 @@
+# Ignore test cases
+test_cases/test_cases.xlsx
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore environment files
+.env
+*.env
+
+# Ignore logs
+*.log
+
+# Ignore temporary files
+*.tmp
+*.swp
+.DS_Store
+
+# Ignore node_modules
+node_modules/
+SMART.krecorder
