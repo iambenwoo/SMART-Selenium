@@ -3,33 +3,34 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
-from . import utils  # Import the entire utils module
-from .utils import get_timestamp, open_url, initialize_driver  # Updated import
-from .data import read_login_password  # Import read_excel_value from data.py
+from .utils import get_timestamp, open_url, initialize_driver, clear_and_enter_text
 
 
-class Login:
+class XPath:
     # Locator constants
     LOGIN_ID_PATH = "//input[@name='search']"
     PASSWORD_PATH = "//div[@id='password']/div[2]/ion-input/input"
 
+
+class Login:
+
     @staticmethod
-    def perform_login(env_id, login_id):
+    def perform_login(map):
         driver = initialize_driver()  # Get driver from utils
 
         try:
-            password = read_login_password(
-                login_id,
-            )
-            # Use the env_id parameter to open the URL
-            open_url(driver, env_id)
+            login_id = map.get("Login_ID")
+            password = map.get("Password")
+
+            # Open the URL using the driver
+            open_url(driver, map.get("URL"))
             print(f"\nINFO: [{get_timestamp()}] Clicking login input\n")
-            utils.clear_and_enter_text(
-                driver, Login.LOGIN_ID_PATH, login_id, Keys.ENTER)
+            clear_and_enter_text(
+                driver, XPath.LOGIN_ID_PATH, login_id, Keys.ENTER)
 
             print(f"\nINFO: [{get_timestamp()}] Clicking password input\n")
-            utils.clear_and_enter_text(
-                driver, Login.PASSWORD_PATH, password, Keys.ENTER)
+            clear_and_enter_text(
+                driver, XPath.PASSWORD_PATH, password, Keys.ENTER)
 
         except Exception as e:
             print(
