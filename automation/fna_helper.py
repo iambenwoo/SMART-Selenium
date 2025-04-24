@@ -1,5 +1,5 @@
 from selenium.webdriver.common.by import By
-from .utils import get_timestamp, clear_and_enter_text, wait_and_click, wait_for_disappear
+from .utils import get_timestamp, clear_and_enter_text, wait_and_click, wait_for_disappear, NumPad
 import time
 
 
@@ -29,21 +29,13 @@ class XPath:
     EDUCATION_LEVEL_VOCATIONAL = "//ion-popover[@id='ion-overlay-5']/div/div[2]/ion-select-popover/ion-list/ion-radio-group/ion-item[3]/ion-radio"
     EDUCATION_LEVEL_UNIVERSITY = "//ion-popover[@id='ion-overlay-5']/div/div[2]/ion-select-popover/ion-list/ion-radio-group/ion-item[4]/ion-radio"
     RETIREMENT_AGE_SELECT = "//div[@id='retirementAge']/div[2]/div/span"
-    RETIREMENT_AGE_CAL_CLEAR = "//ion-modal[@id='ion-overlay-6']/div/nano-number-pad/div/div[3]/div/ion-button[5]"
-    RETIREMENT_AGE_CAL_DIGIT_7 = "//ion-modal[@id='ion-overlay-6']/div/nano-number-pad/div/div[3]/div/ion-button"
-    RETIREMENT_AGE_CAL_DIGIT_4 = "//ion-modal[@id='ion-overlay-6']/div/nano-number-pad/div/div[3]/div/ion-button[2]"
-    RETIREMENT_AGE_CAL_DIGIT_1 = "//ion-modal[@id='ion-overlay-6']/div/nano-number-pad/div/div[3]/div/ion-button[3]"
-    RETIREMENT_AGE_CAL_DIGIT_0 = "//ion-modal[@id='ion-overlay-6']/div/nano-number-pad/div/div[3]/div/ion-button[4]"
-    RETIREMENT_AGE_CAL_DIGIT_8 = "//ion-modal[@id='ion-overlay-6']/div/nano-number-pad/div/div[3]/div[2]/ion-button"
-    RETIREMENT_AGE_CAL_DIGIT_5 = "//ion-modal[@id='ion-overlay-6']/div/nano-number-pad/div/div[3]/div[2]/ion-button[2]"
-    RETIREMENT_AGE_CAL_DIGIT_2 = "//ion-modal[@id='ion-overlay-6']/div/nano-number-pad/div/div[3]/div[2]/ion-button[3]"
-    RETIREMENT_AGE_CAL_DIGIT_9 = "//ion-modal[@id='ion-overlay-6']/div/nano-number-pad/div/div[3]/div[3]/ion-button"
-    RETIREMENT_AGE_CAL_DIGIT_6 = "//ion-modal[@id='ion-overlay-6']/div/nano-number-pad/div/div[3]/div[3]/ion-button[2]"
-    RETIREMENT_AGE_CAL_DIGIT_3 = "//ion-modal[@id='ion-overlay-6']/div/nano-number-pad/div/div[3]/div[3]/ion-button[3]"
-    RETIREMENT_AGE_CAL_CONFIRM = "//ion-modal[@id='ion-overlay-6']/div/nano-number-pad/div/div[3]/div[3]/ion-button[5]"
     ANB_SELECT = "(.//*[normalize-space(text()) and normalize-space(.)='出生日期 (下次生日年齡)'])[1]/following::span[2]"
     ANB_YEAR_SELECT = "//ion-modal[@id='ion-overlay-7']/div/li-ionic4-datepicker-modal/ion-content/ion-grid/ion-row/ion-col[2]/ion-grid/ion-row/ion-col[3]/ion-button"
     ANB_YEAR_VALUE = "//*/text()[normalize-space(.)='1997']/parent::*"
+    ANB_MONTH_SELECT = "//ion-modal[@id='ion-overlay-7']/div/li-ionic4-datepicker-modal/ion-content/ion-grid/ion-row/ion-col[2]/ion-grid/ion-row/ion-col/ion-button"
+    ANB_MONTH_VALUE = "//*/text()[normalize-space(.)='七月']/parent::*"
+    ANB_DAY_VALUE = "//*/text()[normalize-space(.)='10']/parent::*"
+    ANB_CONFIRM = "//ion-modal[@id='ion-overlay-7']/div/li-ionic4-datepicker-modal/ion-footer/ion-toolbar/ion-grid/ion-row/ion-col[3]/ion-button"
 
 
 class Column:
@@ -56,6 +48,7 @@ class Column:
     OCCUPATION_SELECT = "Occupation_Select"
     EDUCATION_LEVEL = "Education_Level"
     RETIREMENT_AGE = "Retirement_Age"
+
 
 class FNAHelpers:
 
@@ -140,7 +133,7 @@ class FNAHelpers:
     @staticmethod
     def set_occupation(driver, map):
         try:
-            #occupation = map.get(Column.OCCUPATION_SELECT)
+            # occupation = map.get(Column.OCCUPATION_SELECT)
             wait_and_click(driver, XPath.OCCUPATION_SELECT)
             time.sleep(2)
             wait_and_click(driver, XPath.OCCUPATION_SELECT_EDUCATION)
@@ -174,21 +167,11 @@ class FNAHelpers:
             print(f"ERROR: Failed to select education - {str(e)}")
             raise
 
-        
     @staticmethod
     def set_retirement_age(driver, map):
         try:
-            #retirement_age = map.get(Column.RETIREMENT_AGE)
             wait_and_click(driver, XPath.RETIREMENT_AGE_SELECT)
-            
-            #if not retirement_age:
-            #    raise ValueError(f"Invalid retirement age: {retirement_age}")
-
-            # Assuming the retirement age is a number and needs to be entered
-            wait_and_click(driver, XPath.RETIREMENT_AGE_CAL_CLEAR)
-            wait_and_click(driver, XPath.RETIREMENT_AGE_CAL_DIGIT_5)
-            wait_and_click(driver, XPath.RETIREMENT_AGE_CAL_DIGIT_9)
-            wait_and_click(driver, XPath.RETIREMENT_AGE_CAL_CONFIRM)
+            NumPad.wait_and_click(driver, "ion-overlay-6", map.get(Column.RETIREMENT_AGE))
         except Exception as e:
             print(f"ERROR: Failed to set retirement age - {str(e)}")
             raise
@@ -196,15 +179,16 @@ class FNAHelpers:
     @staticmethod
     def set_anb(driver, map):
         try:
-            #anb = map.get(Column.ANB_SELECT)
             wait_and_click(driver, XPath.ANB_SELECT)
             time.sleep(1)
             wait_and_click(driver, XPath.ANB_SELECT)
             time.sleep(1)
             wait_and_click(driver, XPath.ANB_YEAR_SELECT)
-            time.sleep(1)
             wait_and_click(driver, XPath.ANB_YEAR_VALUE)
-            #clear_and_enter_text(driver, XPath.ANB_VALUE, anb)
+            wait_and_click(driver, XPath.ANB_MONTH_SELECT)
+            wait_and_click(driver, XPath.ANB_MONTH_VALUE)
+            wait_and_click(driver, XPath.ANB_DAY_VALUE)
+            wait_and_click(driver, XPath.ANB_CONFIRM)
         except Exception as e:
             print(f"ERROR: Failed to set ANB - {str(e)}")
             raise

@@ -80,3 +80,56 @@ def clear_and_enter_text(driver, xpath, text, additional_keys=None):
     except Exception as e:
         print(f"ERROR: Failed to clear and enter text at {xpath} - {str(e)}")
         raise
+
+
+class NumPad:
+    @staticmethod
+    def get_digit_xpath(overlay_id, digit):
+        """
+        Generates the XPath for a calculator digit button based on the overlay ID and digit.
+
+        Args:
+            overlay_id (str): The ID of the overlay.
+            digit (int): The digit to generate the XPath for (0-9).
+
+        Returns:
+            str: The XPath for the specified digit button.
+        """
+        digit_map = {
+            0: "//ion-modal[@id='{overlay_id}']/div/nano-number-pad/div/div[3]/div[3]/ion-button[4]",
+            1: "//ion-modal[@id='{overlay_id}']/div/nano-number-pad/div/div[3]/div[3]/ion-button[3]",
+            2: "//ion-modal[@id='{overlay_id}']/div/nano-number-pad/div/div[3]/div[2]/ion-button[3]",
+            3: "//ion-modal[@id='{overlay_id}']/div/nano-number-pad/div/div[3]/div[3]/ion-button[3]",
+            4: "//ion-modal[@id='{overlay_id}']/div/nano-number-pad/div/div[3]/div[1]/ion-button[2]",
+            5: "//ion-modal[@id='{overlay_id}']/div/nano-number-pad/div/div[3]/div[2]/ion-button[2]",
+            6: "//ion-modal[@id='{overlay_id}']/div/nano-number-pad/div/div[3]/div[3]/ion-button[2]",
+            7: "//ion-modal[@id='{overlay_id}']/div/nano-number-pad/div/div[3]/div[1]/ion-button",
+            8: "//ion-modal[@id='{overlay_id}']/div/nano-number-pad/div/div[3]/div[2]/ion-button",
+            9: "//ion-modal[@id='{overlay_id}']/div/nano-number-pad/div/div[3]/div[3]/ion-button",
+        }
+
+        if digit not in digit_map:
+            raise ValueError(f"Invalid digit: {digit}")
+
+        return digit_map[digit].format(overlay_id=overlay_id)
+
+    @staticmethod
+    def wait_and_click(driver, overlay_id, number):
+        """
+        Splits the number into digits and waits for and clicks each digit button.
+
+        Args:
+            driver: WebDriver instance.
+            overlay_id (str): The ID of the overlay.
+            number (int): The number to click, split into digits.
+        """
+        NUMPAD_CLEAR = "//ion-modal[@id='{overlay_id}']/div/nano-number-pad/div/div[3]/div/ion-button[5]"
+        NUMPAD_CONFIRM = "//ion-modal[@id='{overlay_id}']/div/nano-number-pad/div/div[3]/div[3]/ion-button[5]"
+    
+        wait_and_click(driver, NUMPAD_CLEAR.format(overlay_id=overlay_id))
+
+        for digit in str(number):
+            xpath = NumPad.get_digit_xpath(overlay_id, int(digit))
+            wait_and_click(driver, xpath)
+
+        wait_and_click(driver, NUMPAD_CONFIRM.format(overlay_id=overlay_id))

@@ -16,6 +16,7 @@ class FNA:
             FNAHelpers.set_education_level(driver, map)
             FNAHelpers.set_retirement_age(driver, map)
             FNAHelpers.set_anb(driver, map)
+            #FNAHelpers.set_extra_life(driver, map)
             FNAHelpers.input_english_name(driver, map)
             # Uncomment the line below if mobile number input is required
             # FNAHelpers.input_mobile_number(driver, map)
