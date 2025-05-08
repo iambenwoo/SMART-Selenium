@@ -17,6 +17,7 @@ class FNA:
         #FNAStep(FNAHelpers.set_extra_medical, num_pad_seq=2),
         #FNAStep(FNAHelpers.set_time_to_achieve, num_pad_seq=2),
         FNAStep(FNAHelpers.set_objective, requires_overlay=False),
+        FNAStep(FNAHelpers.set_target_period, requires_overlay=False),
         #FNAStep(FNAHelpers.set_marital_status),
         #FNAStep(FNAHelpers.set_education_level),
         #FNAStep(FNAHelpers.set_number_of_dependents),

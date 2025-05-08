@@ -36,6 +36,7 @@ class XPath:
     EXTRA_SAVING_SELECT = "//div[@id='extReqNetSaving']/div[2]/div"
     TIME_TO_ACHIEVE_SELECT = "//div[@id='timeToAchieveSavingAmt']/div[2]/div"
     OBJECTIVE_SELECT = "ion-list ion-item ion-checkbox"
+    TARGET_PERIOD = "ion-radio-group ion-item ion-radio"
 
 
 class Column:
@@ -52,6 +53,7 @@ class Column:
     EXTRA_SAVING = "Extra_Saving"
     TIME_TO_ACHIEVE = "Time_to_Achieve"
     OBJECTIVE = "Objective"
+    TARGET_PERIOD = "Target_Period"
 
 
 class OptionConstants:
@@ -77,12 +79,22 @@ class OptionConstants:
     }
 
     OBJECTIVE_OPTIONS = {
-        "a": "",
-        "b": "[2]",
-        "c": "[3]",
-        "d": "[4]",
-        "e": "[5]",
-        "f": "[6]",
+        "a": 0,
+        "b": 1,
+        "c": 2,
+        "d": 3,
+        "e": 4,
+        "f": 5,
+    }
+
+    TARGET_PERIOD_OPTIONS = {
+        "a": 0,
+        "b": 1,
+        "c": 2,
+        "d": 3,
+        "e": 4,
+        "f": 5,
+        "g": 6,
     }
 
 
@@ -290,12 +302,11 @@ class FNAHelpers:
             value = map.get(Column.OBJECTIVE)
             print(f"INFO: Setting objective with value: {value}")
 
-            # Use the constant mapping objectives to indices
-            indices = [OptionConstants.OBJECTIVE_OPTIONS[obj] for obj in objectives if obj in OptionConstants.OBJECTIVE_OPTIONS]
-
             # Split the value string and convert to element indices
             objectives = [x.strip().lower() for x in value.split(',')]
-            indices = [OBJECTIVE_INDEX_MAPPING[obj] for obj in objectives if obj in OBJECTIVE_INDEX_MAPPING]
+            indices = [OptionConstants.OBJECTIVE_OPTIONS[obj] for obj in objectives if obj in OptionConstants.OBJECTIVE_OPTIONS]
+
+            print(f"INFO: Indices to click: {indices}")
 
             wait = WebDriverWait(driver, 10, 0.5)
             path = XPath.OBJECTIVE_SELECT
@@ -325,6 +336,49 @@ class FNAHelpers:
                     except StaleElementReferenceException:
                         print(f"ERROR: Stale element reference exception for index {index}")
                     time.sleep(1)
+        except Exception as e:
+            print(f"ERROR: Failed to set objective - {str(e)}")
+            raise
+
+    @staticmethod
+    def set_target_period(driver, map):
+        try:
+            value = map.get(Column.TARGET_PERIOD)
+            print(f"INFO: Setting Target Period with value: {value}")
+
+            # Split the value string and convert to element indices
+            target_period = [x.strip().lower() for x in value.split(',')]
+            indices = [OptionConstants.TARGET_PERIOD_OPTIONS[obj] for obj in target_period if obj in OptionConstants.TARGET_PERIOD_OPTIONS]
+
+            wait = WebDriverWait(driver, 10, 0.5)
+            path = XPath.TARGET_PERIOD
+
+            element = wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, path)))
+            print(f"INFO: Elements at {path} to be present")
+            elements = driver.find_elements(By.CSS_SELECTOR, path)
+
+            # Click each selected objective
+            for index in indices:
+                print(f"INFO: Clicking objective at index {index}")
+                if index < len(elements):
+                    try:
+                        elements2 = driver.find_elements(By.CSS_SELECTOR, path)
+                        element = elements2[index]
+                        driver.execute_script("arguments[0].scrollIntoView(true);", element)
+                        # Locate element again after scrolling
+                        elements2 = driver.find_elements(By.CSS_SELECTOR, path)
+                        element = elements2[index]
+                        driver.execute_script("arguments[0].click();", element)
+                        time.sleep(1)
+                        # Locate element again
+                        elements2 = driver.find_elements(By.CSS_SELECTOR, path)
+                        element = elements2[index]
+                        driver.execute_script("arguments[0].click();", element)
+                    except StaleElementReferenceException:
+                        print(f"ERROR: Stale element reference exception for index {index}")
+                    time.sleep(1)
+            time.sleep(5)
         except Exception as e:
             print(f"ERROR: Failed to set objective - {str(e)}")
             raise
