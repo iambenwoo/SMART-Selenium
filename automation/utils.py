@@ -10,7 +10,9 @@ from selenium.webdriver.common.by import By
 DEFAULT_WINDOW_SIZE = (1200, 926)
 DEFAULT_TIMEOUT = 10
 DEFAULT_POLL_FREQUENCY = 0.5
-DEFAULT_TEST_CASES_PATH = os.path.join(os.path.dirname(__file__), "../test_cases/test_cases.xlsx")
+DEFAULT_TEST_CASES_PATH = os.path.join(
+    os.path.dirname(__file__), "../test_cases/test_cases.xlsx")
+
 
 @staticmethod
 def initialize_driver(window_size=DEFAULT_WINDOW_SIZE):
@@ -46,25 +48,61 @@ def wait_for_disappear(driver, xpath, BY=By.XPATH):
         print(f"INFO: Waiting for element at {xpath} to disappear")
         wait.until(EC.invisibility_of_element_located((BY, xpath)))
     except Exception as e:
-        print(f"ERROR: Failed to wait for element at {xpath} to disappear - {str(e)}")
+        print(
+            f"ERROR: Failed to wait for element at {xpath} to disappear - {str(e)}")
         raise
 
 
-def wait_and_click(driver, xpath):
+def click(driver, xpath):
     """Locates, scrolls to, and clicks an element."""
     try:
         wait = WebDriverWait(driver, DEFAULT_TIMEOUT, DEFAULT_POLL_FREQUENCY)
+        print(f"INFO: Waiting for element at {xpath} to be present")
         element = wait.until(EC.presence_of_element_located((By.XPATH, xpath)))
         driver.execute_script("arguments[0].scrollIntoView(true);", element)
-        print(f"INFO: Clicking element at {xpath}")
-        wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
-        element.click()
+        print(f"INFO: Scrolling to element at {xpath} successfully")
+        print(f"INFO: Element enabled status: {element.is_enabled(), element.is_displayed(), element.is_selected()}")
+        print(f"INFO: Waiting for element at {xpath}")
+        wait.until(EC.element_to_be_clickable((element)))
+        try:
+            print(f"INFO: Clicking element at {xpath}")
+            #time.sleep(2)
+            #driver.find_element(By.XPATH, xpath).click()
+            element.click()
+
+        except Exception:   
+            time.sleep(1)
+            element.click()
+            raise
     except Exception as e:
         print(f"ERROR: Failed to click element at {xpath} - {str(e)}")
         raise
 
+def click_by_CSS(driver, css_path):
+    """Locates, scrolls to, and clicks an element using CSS selector."""
+    try:
+        wait = WebDriverWait(driver, DEFAULT_TIMEOUT, DEFAULT_POLL_FREQUENCY)
+        print(f"INFO: Waiting for element at {css_path} to be present")
+        element = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, css_path)))
+        driver.execute_script("arguments[0].scrollIntoView(true);", element)
+        print(f"INFO: Scrolling to element at {css_path} successfully")
+        print(f"INFO: Element enabled status: {element.is_enabled(), element.is_displayed(), element.is_selected()}")
+        print(f"INFO: Waiting for element at {css_path}")
+        wait.until(EC.element_to_be_clickable((element)))
+        try:
+            print(f"INFO: Clicking element at {css_path}")
+            #time.sleep(2)
+            element.click()
 
-def clear_and_enter_text(driver, xpath, text, additional_keys=None):
+        except Exception:   
+            time.sleep(1)
+            element.click()
+            raise
+    except Exception as e:
+        print(f"ERROR: Failed to click element at {css_path} - {str(e)}")
+        raise
+
+def input_text(driver, xpath, text, additional_keys=None):
     """Clears and enters text into an element, optionally sending additional keys."""
     try:
         wait = WebDriverWait(driver, DEFAULT_TIMEOUT, DEFAULT_POLL_FREQUENCY)
@@ -83,38 +121,25 @@ def clear_and_enter_text(driver, xpath, text, additional_keys=None):
 
 
 class NumPad:
-    @staticmethod
-    def get_digit_xpath(overlay_seq, num_pad_seq, digit):
-        """
-        Generates the XPath for a calculator digit button based on the overlay ID and digit.
 
-        Args:
-            overlay_id (str): The ID of the overlay.
-            digit (int): The digit to generate the XPath for (0-9).
+    CLEAR_BUTTON = "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div/ion-button[5]"
+    CONFIRM_BUTTON = "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[3]/ion-button[5]"
 
-        Returns:
-            str: The XPath for the specified digit button.
-        """
-        digit_map = {
-            0: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[3]/ion-button[4]",
-            1: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[3]/ion-button[3]",
-            2: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[2]/ion-button[3]",
-            3: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[3]/ion-button[3]",
-            4: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[1]/ion-button[2]",
-            5: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[2]/ion-button[2]",
-            6: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[3]/ion-button[2]",
-            7: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[1]/ion-button",
-            8: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[2]/ion-button",
-            9: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[3]/ion-button",
-        }
-
-        if digit not in digit_map:
-            raise ValueError(f"Invalid digit: {digit}")
-
-        return digit_map[digit].format(seq=overlay_seq, num_pad_seq=num_pad_seq)
+    DIGIT_MAP = {
+        0: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div/ion-button[4]",
+        1: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div/ion-button[3]",
+        2: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[2]/ion-button[3]",
+        3: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[3]/ion-button[3]",
+        4: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div/ion-button[2]",
+        5: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[2]/ion-button[2]",
+        6: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[3]/ion-button[2]",
+        7: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div/ion-button",
+        8: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[2]/ion-button",
+        9: "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[3]/ion-button",
+    }
 
     @staticmethod
-    def wait_and_click(driver, overlay_seq, num_pad_seq, number):
+    def click_number(driver, overlay_seq, num_pad_seq, number):
         """
         Splits the number into digits and waits for and clicks each digit button.
 
@@ -123,14 +148,16 @@ class NumPad:
             overlay_id (str): The ID of the overlay.
             number (int): The number to click, split into digits.
         """
-        NUMPAD_CLEAR = "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div/ion-button[5]"
-        NUMPAD_CONFIRM = "//ion-modal[@id='ion-overlay-{seq}']/div/nano-number-pad/div/div[{num_pad_seq}]/div[3]/ion-button[5]"
-    
-        wait_and_click(driver, NUMPAD_CLEAR.format(seq=overlay_seq, num_pad_seq=num_pad_seq))
 
+        click(driver, NumPad.CLEAR_BUTTON.format(
+            seq=overlay_seq, num_pad_seq=num_pad_seq))
+
+        print(f"INFO: Clicking number {number} on numpad")
         for digit in str(number):
-            xpath = NumPad.get_digit_xpath(overlay_seq, num_pad_seq, int(digit))
-            wait_and_click(driver, xpath)
+            xpath = NumPad.DIGIT_MAP[int(digit)].format(
+                seq=overlay_seq, num_pad_seq=num_pad_seq)
+            click(driver, xpath)
 
-        wait_and_click(driver, NUMPAD_CONFIRM.format(seq=overlay_seq, num_pad_seq=num_pad_seq))
+        click(driver, NumPad.CONFIRM_BUTTON.format(
+            seq=overlay_seq, num_pad_seq=num_pad_seq))
         time.sleep(1)

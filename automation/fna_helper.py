@@ -1,19 +1,23 @@
 from selenium.webdriver.common.by import By
-from .utils import get_timestamp, clear_and_enter_text, wait_and_click, wait_for_disappear, NumPad
+from .utils import get_timestamp, input_text, click, click_by_CSS, wait_for_disappear, NumPad
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.action_chains import ActionChains
 import time
+from selenium.common.exceptions import StaleElementReferenceException
+from selenium.webdriver.support import expected_conditions as EC
 
 
 class XPath:
     # Locator constants
     ION_BACKDROP_SELECTOR = "ion-backdrop.sc-ion-loading-ios.ios.backdrop-no-tappable.hydrated"
     FNA_START_NEW_BUTTON = "(.//*[normalize-space(text()) and normalize-space(.)='財務需要分析'])[2]/following::button[1]"
-    FAMILY_NAME_INPUT = "//div[@id='familyName']/div[2]/ion-input/input"
-    GIVEN_NAME_INPUT = "//div[@id='givenName']/div[2]/ion-input/input"
+    FAMILY_NAME_ENG_INPUT = "//div[@id='familyName']/div[2]/ion-input/input"
+    GIVEN_NAME_ENG_INPUT = "//div[@id='givenName']/div[2]/ion-input/input"
     MOBILE_NUMBER_INPUT = "//div[@id='mobile']/div[2]/ion-input/input"
     NUMBER_OF_DEPENDENT_SELECT = "(.//*[normalize-space(text()) and normalize-space(.)='受養人數目'])[1]/following::ion-select[1]"
     NUMBER_OF_DEPENDENT = "//ion-popover[@id='ion-overlay-{seq}']/div/div[2]/ion-select-popover/ion-list/ion-radio-group/ion-item{option}/ion-radio"
     MARITAL_STATUS_SELECT = "(.//*[normalize-space(text()) and normalize-space(.)='婚姻狀況'])[1]/following::ion-select[1]"
-    MARITAL_STATUS = "//ion-popover[@id='ion-overlay-{seq}']/div/div[2]/ion-select-popover/ion-list/ion-radio-group/ion-item{option}/ion-radio"
+    MARITAL_STATUS_OPTION = "//ion-popover[@id='ion-overlay-{seq}']/div/div[2]/ion-select-popover/ion-list/ion-radio-group/ion-item{option}/ion-radio"
     OCCUPATION_SELECT = "(.//*[normalize-space(text()) and normalize-space(.)='職業'])[1]/following::div[4]"
     OCCUPATION_SELECT_EDUCATION = "//*/text()[normalize-space(.)='教育']/parent::*"
     OCCUPATION_SELECT_EDUCATION_PRINCIPLE = "//*/text()[normalize-space(.)='校長']/parent::*"
@@ -30,6 +34,8 @@ class XPath:
     EXTRA_LIFE_SELECT = "//div[@id='extraLifeProtNeeds']/div[2]/div"
     EXTRA_MEDICAL_SELECT = "//div[@id='extMedCrisisBeneNeeds']/div[2]/div"
     EXTRA_SAVING_SELECT = "//div[@id='extReqNetSaving']/div[2]/div"
+    TIME_TO_ACHIEVE_SELECT = "//div[@id='timeToAchieveSavingAmt']/div[2]/div"
+    OBJECTIVE_SELECT = "ion-list ion-item ion-checkbox"
 
 
 class Column:
@@ -39,12 +45,45 @@ class Column:
     MOBILE_NUMBER = "Mobile_Number"
     MARITAL_STATUS = "Marital_Status"
     NUMBER_OF_DEPENDENTS = "Number_of_Dependents"
-    OCCUPATION_SELECT = "Occupation_Select"
     EDUCATION_LEVEL = "Education_Level"
     RETIREMENT_AGE = "Retirement_Age"
     EXTRA_LIFE = "Extra_Life"
     EXTRA_MEDICAL = "Extra_Medical"
     EXTRA_SAVING = "Extra_Saving"
+    TIME_TO_ACHIEVE = "Time_to_Achieve"
+    OBJECTIVE = "Objective"
+
+
+class OptionConstants:
+    MARITAL_STATUS_OPTIONS = {
+        "single": "",
+        "married": "[2]",
+        "divorced": "[3]",
+        "widowed": "[4]",
+    }
+
+    NUMBER_OF_DEPENDENTS_OPTIONS = {
+        "nil": "",
+        "1-3": "[2]",
+        "4-6": "[3]",
+        "7-above": "[4]",
+    }
+
+    EDUCATION_LEVEL_OPTIONS = {
+        "primary": "",
+        "secondary": "[2]",
+        "vocational": "[3]",
+        "university": "[4]",
+    }
+
+    OBJECTIVE_OPTIONS = {
+        "a": "",
+        "b": "[2]",
+        "c": "[3]",
+        "d": "[4]",
+        "e": "[5]",
+        "f": "[6]",
+    }
 
 
 class FNAHelpers:
@@ -52,10 +91,13 @@ class FNAHelpers:
     @staticmethod
     def input_english_name(driver, map):
         try:
-            clear_and_enter_text(
-                driver, XPath.FAMILY_NAME_INPUT, map.get(Column.FAMILY_NAME_ENG, ""))
-            clear_and_enter_text(
-                driver, XPath.GIVEN_NAME_INPUT, map.get(Column.GIVEN_NAME_ENG, ""))
+            value = map.get(Column.FAMILY_NAME_ENG, "")
+            xpath = XPath.FAMILY_NAME_ENG_INPUT
+            input_text(driver, xpath, value)
+
+            value = map.get(Column.GIVEN_NAME_ENG, "")
+            xpath = XPath.GIVEN_NAME_ENG_INPUT
+            input_text(driver, xpath, value)
         except Exception as e:
             print(f"ERROR: Failed to input names - {str(e)}")
             raise
@@ -63,8 +105,9 @@ class FNAHelpers:
     @staticmethod
     def input_mobile_number(driver, map):
         try:
-            clear_and_enter_text(
-                driver, XPath.MOBILE_NUMBER_INPUT, map.get(Column.MOBILE_NUMBER, ""))
+            value = map.get(Column.MOBILE_NUMBER, "")
+            xpath = XPath.MOBILE_NUMBER_INPUT
+            input_text(driver, xpath, value)
         except Exception as e:
             print(f"ERROR: Failed to input mobile number - {str(e)}")
             raise
@@ -72,23 +115,19 @@ class FNAHelpers:
     @staticmethod
     def set_marital_status(driver, map, overlay_seq):
         try:
-            marital_status = map.get(Column.MARITAL_STATUS)
-            wait_and_click(driver, XPath.MARITAL_STATUS_SELECT)
+            value = map.get(Column.MARITAL_STATUS)
+            xpath = XPath.MARITAL_STATUS_SELECT
+            click(driver, xpath)
             time.sleep(1)
-            wait_and_click(driver, XPath.MARITAL_STATUS_SELECT)
+            click(driver, xpath)
 
-            marital_status_options = {
-                "single": "",
-                "married": "[2]",
-                "divorced": "[3]",
-                "widowed": "[4]",
-            }
+            options = OptionConstants.MARITAL_STATUS_OPTIONS
+            if value not in options:
+                raise ValueError(f"Invalid marital status: {value}")
 
-            if marital_status not in marital_status_options:
-                raise ValueError(f"Invalid marital status: {marital_status}")
-
-            wait_and_click(driver, XPath.MARITAL_STATUS.format(
-                seq=overlay_seq, option=marital_status_options[marital_status]))
+            xpath = XPath.MARITAL_STATUS_OPTION.format(
+                seq=overlay_seq, option=options[value])
+            click(driver, xpath)
             time.sleep(1)
         except Exception as e:
             print(f"ERROR: Failed to set marital status - {str(e)}")
@@ -97,36 +136,32 @@ class FNAHelpers:
     @staticmethod
     def set_number_of_dependents(driver, map, overlay_seq):
         try:
-            number_of_dependents = map.get(Column.NUMBER_OF_DEPENDENTS)
-            wait_and_click(driver, XPath.NUMBER_OF_DEPENDENT_SELECT)
+            value = map.get(Column.NUMBER_OF_DEPENDENTS)
+            xpath = XPath.NUMBER_OF_DEPENDENT_SELECT
+            click(driver, xpath)
             time.sleep(1)
-            wait_and_click(driver, XPath.NUMBER_OF_DEPENDENT_SELECT)
+            click(driver, xpath)
 
-            number_of_dependents_options = {
-                "nil": "",
-                "1-3": "[2]",
-                "4-6": "[3]",
-                "7-above": "[4]",
-            }
-
-            if number_of_dependents not in number_of_dependents_options:
+            options = OptionConstants.NUMBER_OF_DEPENDENTS_OPTIONS
+            if value not in options:
                 raise ValueError(
-                    f"Invalid number of dependents: {number_of_dependents}")
+                    f"Invalid number of dependents: {value}")
 
-            wait_and_click(driver, XPath.NUMBER_OF_DEPENDENT.format(
-                seq=overlay_seq, option=number_of_dependents_options[number_of_dependents]))
+            xpath = XPath.NUMBER_OF_DEPENDENT.format(
+                seq=overlay_seq, option=options[value])
+            click(driver, xpath)
             time.sleep(1)
         except Exception as e:
             print(f"ERROR: Failed to set number of dependents - {str(e)}")
             raise
 
     @staticmethod
-    def start_new_fna(driver):
+    def start_new_fna(driver, map):
         try:
             wait_for_disappear(
                 driver, XPath.ION_BACKDROP_SELECTOR, By.CSS_SELECTOR)
-            time.sleep(10)
-            wait_and_click(driver, XPath.FNA_START_NEW_BUTTON)
+            time.sleep(12)
+            click(driver, XPath.FNA_START_NEW_BUTTON)
         except Exception as e:
             print(f"ERROR: Failed to start new FNA - {str(e)}")
             raise
@@ -134,12 +169,14 @@ class FNAHelpers:
     @staticmethod
     def set_occupation(driver, map):
         try:
-            # occupation = map.get(Column.OCCUPATION_SELECT)
-            wait_and_click(driver, XPath.OCCUPATION_SELECT)
+            xpath = XPath.OCCUPATION_SELECT
+            click(driver, xpath)
             time.sleep(2)
-            wait_and_click(driver, XPath.OCCUPATION_SELECT_EDUCATION)
+            xpath = XPath.OCCUPATION_SELECT_EDUCATION
+            click(driver, xpath)
             time.sleep(2)
-            wait_and_click(driver, XPath.OCCUPATION_SELECT_EDUCATION_PRINCIPLE)
+            xpath = XPath.OCCUPATION_SELECT_EDUCATION_PRINCIPLE
+            click(driver, xpath)
         except Exception as e:
             print(f"ERROR: Failed to select occupation - {str(e)}")
             raise
@@ -147,37 +184,33 @@ class FNAHelpers:
     @staticmethod
     def set_education_level(driver, map, overlay_seq):
         try:
-            education_level = map.get(Column.EDUCATION_LEVEL)
-            wait_and_click(driver, XPath.EDUCATION_LEVEL_SELECT)
+            value = map.get(Column.EDUCATION_LEVEL)
+            xpath = XPath.EDUCATION_LEVEL_SELECT
+            click(driver, xpath)
             time.sleep(1)
-            wait_and_click(driver, XPath.EDUCATION_LEVEL_SELECT)
+            click(driver, xpath)
 
-            education_level_options = {
-                "primary": "",
-                "secondary": "[2]",
-                "vocational": "[3]",
-                "university": "[4]",
-            }
+            options = OptionConstants.EDUCATION_LEVEL_OPTIONS
+            if value not in options:
+                raise ValueError(f"Invalid education level: {value}")
 
-            if education_level not in education_level_options:
-                raise ValueError(f"Invalid education level: {education_level}")
-
-            wait_and_click(driver, XPath.EDUCATION_LEVEL.format(
-                seq=overlay_seq, option=education_level_options[education_level]))
+            xpath = XPath.EDUCATION_LEVEL.format(
+                seq=overlay_seq, option=options[value])
+            click(driver, xpath)
             time.sleep(1)
         except Exception as e:
             print(f"ERROR: Failed to select education - {str(e)}")
             raise
 
     @staticmethod
-    def set_retirement_age_num_pad(driver, map, overlay_seq, num_pad_seq):
+    def set_retirement_age(driver, map, overlay_seq, num_pad_seq):
         try:
-            retirement_age = map.get(Column.RETIREMENT_AGE)
-            wait_and_click(driver, XPath.RETIREMENT_AGE_SELECT)
+            value = map.get(Column.RETIREMENT_AGE)
+            xpath = XPath.RETIREMENT_AGE_SELECT
+            click(driver, xpath)
             time.sleep(1)
-            wait_and_click(driver, XPath.RETIREMENT_AGE_SELECT)
-
-            NumPad.wait_and_click(driver, overlay_seq, num_pad_seq, retirement_age)
+            click(driver, xpath)
+            NumPad.click_number(driver, overlay_seq, num_pad_seq, value)
         except Exception as e:
             print(f"ERROR: Failed to set retirement age - {str(e)}")
             raise
@@ -185,18 +218,18 @@ class FNAHelpers:
     @staticmethod
     def set_anb(driver, map, overlay_seq):
         try:
-            wait_and_click(driver, XPath.ANB_SELECT)
+            click(driver, XPath.ANB_SELECT)
             time.sleep(1)
-            wait_and_click(driver, XPath.ANB_SELECT)
+            click(driver, XPath.ANB_SELECT)
             time.sleep(1)
-            wait_and_click(
+            click(
                 driver, XPath.ANB_YEAR_SELECT.format(seq=overlay_seq))
-            wait_and_click(driver, XPath.ANB_YEAR_VALUE)
-            wait_and_click(
+            click(driver, XPath.ANB_YEAR_VALUE)
+            click(
                 driver, XPath.ANB_MONTH_SELECT.format(seq=overlay_seq))
-            wait_and_click(driver, XPath.ANB_MONTH_VALUE)
-            wait_and_click(driver, XPath.ANB_DAY_VALUE)
-            wait_and_click(driver, XPath.ANB_CONFIRM.format(seq=overlay_seq))
+            click(driver, XPath.ANB_MONTH_VALUE)
+            click(driver, XPath.ANB_DAY_VALUE)
+            click(driver, XPath.ANB_CONFIRM.format(seq=overlay_seq))
         except Exception as e:
             print(f"ERROR: Failed to set ANB - {str(e)}")
             raise
@@ -204,12 +237,12 @@ class FNAHelpers:
     @staticmethod
     def set_extra_life(driver, map, overlay_seq, num_pad_seq):
         try:
-            extra_life = map.get(Column.EXTRA_LIFE)
-            wait_and_click(driver, XPath.EXTRA_LIFE_SELECT)
+            value = map.get(Column.EXTRA_LIFE)
+            xpath = XPath.EXTRA_LIFE_SELECT
+            click(driver, xpath)
             time.sleep(1)
-            wait_and_click(driver, XPath.EXTRA_LIFE_SELECT)        
-
-            NumPad.wait_and_click(driver, overlay_seq, num_pad_seq, extra_life)
+            click(driver, xpath)
+            NumPad.click_number(driver, overlay_seq, num_pad_seq, value)
         except Exception as e:
             print(f"ERROR: Failed to set extra life - {str(e)}")
             raise
@@ -217,9 +250,10 @@ class FNAHelpers:
     @staticmethod
     def set_extra_medical(driver, map, overlay_seq, num_pad_seq):
         try:
-            extra_medical = map.get(Column.EXTRA_MEDICAL)
-            wait_and_click(driver, XPath.EXTRA_MEDICAL_SELECT)
-            NumPad.wait_and_click(driver, overlay_seq, num_pad_seq, extra_medical)
+            value = map.get(Column.EXTRA_MEDICAL)
+            xpath = XPath.EXTRA_MEDICAL_SELECT
+            click(driver, xpath)
+            NumPad.click_number(driver, overlay_seq, num_pad_seq, value)
         except Exception as e:
             print(f"ERROR: Failed to set extra medical - {str(e)}")
             raise
@@ -227,11 +261,70 @@ class FNAHelpers:
     @staticmethod
     def set_extra_saving(driver, map, overlay_seq, num_pad_seq):
         try:
-            extra_saving = map.get(Column.EXTRA_SAVING)
-            wait_and_click(driver, XPath.EXTRA_SAVING_SELECT)
+            value = map.get(Column.EXTRA_SAVING)
+            xpath = XPath.EXTRA_SAVING_SELECT
+            click(driver, xpath)
             time.sleep(1)
-            wait_and_click(driver, XPath.EXTRA_SAVING_SELECT)
-            NumPad.wait_and_click(driver, overlay_seq, num_pad_seq, extra_saving)
+            click(driver, xpath)
+            NumPad.click_number(driver, overlay_seq, num_pad_seq, value)
         except Exception as e:
             print(f"ERROR: Failed to set extra saving - {str(e)}")
+            raise
+
+    @staticmethod
+    def set_time_to_achieve(driver, map, overlay_seq, num_pad_seq):
+        try:
+            value = map.get(Column.TIME_TO_ACHIEVE)
+            xpath = XPath.TIME_TO_ACHIEVE_SELECT
+            click(driver, xpath)
+            time.sleep(1)
+            click(driver, xpath)
+            NumPad.click_number(driver, overlay_seq, num_pad_seq, value)
+        except Exception as e:
+            print(f"ERROR: Failed to set time to achieve - {str(e)}")
+            raise
+
+    @staticmethod
+    def set_objective(driver, map):
+        try:
+            value = map.get(Column.OBJECTIVE)
+            print(f"INFO: Setting objective with value: {value}")
+
+            # Use the constant mapping objectives to indices
+            indices = [OptionConstants.OBJECTIVE_OPTIONS[obj] for obj in objectives if obj in OptionConstants.OBJECTIVE_OPTIONS]
+
+            # Split the value string and convert to element indices
+            objectives = [x.strip().lower() for x in value.split(',')]
+            indices = [OBJECTIVE_INDEX_MAPPING[obj] for obj in objectives if obj in OBJECTIVE_INDEX_MAPPING]
+
+            wait = WebDriverWait(driver, 10, 0.5)
+            path = XPath.OBJECTIVE_SELECT
+
+            element = wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, path)))
+            print(f"INFO: Elements at {path} to be present")
+            elements = driver.find_elements(By.CSS_SELECTOR, path)
+
+            # Click each selected objective
+            for index in indices:
+                print(f"INFO: Clicking objective at index {index}")
+                if index < len(elements):
+                    try:
+                        elements2 = driver.find_elements(By.CSS_SELECTOR, path)
+                        element = elements2[index]
+                        driver.execute_script("arguments[0].scrollIntoView(true);", element)
+                        # Locate element again after scrolling
+                        elements2 = driver.find_elements(By.CSS_SELECTOR, path)
+                        element = elements2[index]
+                        driver.execute_script("arguments[0].click();", element)
+                        time.sleep(1)
+                        # Locate element again
+                        elements2 = driver.find_elements(By.CSS_SELECTOR, path)
+                        element = elements2[index]
+                        driver.execute_script("arguments[0].click();", element)
+                    except StaleElementReferenceException:
+                        print(f"ERROR: Stale element reference exception for index {index}")
+                    time.sleep(1)
+        except Exception as e:
+            print(f"ERROR: Failed to set objective - {str(e)}")
             raise
