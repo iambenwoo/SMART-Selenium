@@ -37,7 +37,8 @@ class XPath:
     TIME_TO_ACHIEVE_SELECT = "//div[@id='timeToAchieveSavingAmt']/div[2]/div"
     OBJECTIVE_SELECT = "ion-list ion-item ion-checkbox"
     TARGET_PERIOD = "ion-radio-group ion-item ion-radio"
-
+    MONTHLY_PREM_EXPENSE = "//div[@id='monthlyPremExpense']/div[2]/div"
+    MONTHLY_DISPOSABLE_INCOME = "//div[@id='monthlyDispIncomeAmt']/div[2]/div"
 
 class Column:
     # Column constants
@@ -54,6 +55,8 @@ class Column:
     TIME_TO_ACHIEVE = "Time_to_Achieve"
     OBJECTIVE = "Objective"
     TARGET_PERIOD = "Target_Period"
+    MONTHLY_PREM_EXPENSE = "Monthly_Prem_Expense"
+    MONTHLY_DISPOSABLE_INCOME = "Monthly_Disposable_Income"
 
 
 class OptionConstants:
@@ -378,7 +381,68 @@ class FNAHelpers:
                     except StaleElementReferenceException:
                         print(f"ERROR: Stale element reference exception for index {index}")
                     time.sleep(1)
-            time.sleep(5)
+            time.sleep(1)
         except Exception as e:
             print(f"ERROR: Failed to set objective - {str(e)}")
+            raise
+
+    @staticmethod
+    def set_income_source(driver, map):
+        try:
+            wait = WebDriverWait(driver, 10, 0.5)
+            path = "ion-radio-group"
+
+            element = wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, path)))
+            elements = driver.find_elements(By.CSS_SELECTOR, path)
+            print(f"INFO: Elements at {path} to be present")
+            element = elements[1]
+            radio = element.find_elements(By.CSS_SELECTOR, "ion-radio")
+            driver.execute_script("arguments[0].scrollIntoView(true);", radio[0])
+            driver.execute_script("arguments[0].click();", radio[0])
+            time.sleep(1)
+            driver.execute_script("arguments[0].click();", radio[0])
+            time.sleep(5)
+        except Exception as e:
+            print(f"ERROR: Failed to set income source - {str(e)}")
+            raise
+
+    @staticmethod
+    def set_monthly_prem_expense(driver, map, overlay_seq, num_pad_seq):
+        try:
+            value = map.get(Column.MONTHLY_PREM_EXPENSE)
+            xpath = XPath.MONTHLY_PREM_EXPENSE
+            click(driver, xpath)
+            time.sleep(1)
+            click(driver, xpath)
+            NumPad.click_number(driver, overlay_seq, num_pad_seq, value)
+        except Exception as e:
+            print(f"ERROR: Failed to set monthly premium expense - {str(e)}")
+            raise
+
+    @staticmethod
+    def set_monthly_disposable_income(driver, map, overlay_seq, num_pad_seq):
+        try:
+            wait = WebDriverWait(driver, 10, 0.5)
+            path = "ion-radio-group"
+
+            element = wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, path)))
+            elements = driver.find_elements(By.CSS_SELECTOR, path)
+            print(f"INFO: Elements at {path} to be present")
+            element = elements[2]
+            radio = element.find_elements(By.CSS_SELECTOR, "ion-radio")
+            driver.execute_script("arguments[0].scrollIntoView(true);", radio[0])
+            driver.execute_script("arguments[0].click();", radio[0])
+
+            value = map.get(Column.MONTHLY_DISPOSABLE_INCOME)
+            xpath = XPath.MONTHLY_DISPOSABLE_INCOME
+            click(driver, xpath)
+            time.sleep(1)
+            click(driver, xpath)
+            NumPad.click_number(driver, overlay_seq, num_pad_seq, value)            
+
+            time.sleep(5)
+        except Exception as e:
+            print(f"ERROR: Failed to set income source - {str(e)}")
             raise
