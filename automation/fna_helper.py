@@ -57,6 +57,9 @@ class Column:
     TARGET_PERIOD = "Target_Period"
     MONTHLY_PREM_EXPENSE = "Monthly_Prem_Expense"
     MONTHLY_DISPOSABLE_INCOME = "Monthly_Disposable_Income"
+    PAYMENT_INCOME_RATIO = "Payment_Income_Ratio"
+    PAYMENT_PERIOD = "Payment_Period"
+    ASSETS = "Assets"
 
 
 class OptionConstants:
@@ -91,6 +94,16 @@ class OptionConstants:
     }
 
     TARGET_PERIOD_OPTIONS = {
+        "a": 0,
+        "b": 1,
+        "c": 2,
+        "d": 3,
+        "e": 4,
+        "f": 5,
+        "g": 6,
+    }
+
+    ASSETS_OPTIONs = {
         "a": 0,
         "b": 1,
         "c": 2,
@@ -423,6 +436,8 @@ class FNAHelpers:
     @staticmethod
     def set_monthly_disposable_income(driver, map, overlay_seq, num_pad_seq):
         try:
+            value = map.get(Column.MONTHLY_DISPOSABLE_INCOME)
+            print(f"INFO: Setting Monthly Disposable Income with value: {value}")
             wait = WebDriverWait(driver, 10, 0.5)
             path = "ion-radio-group"
 
@@ -432,17 +447,139 @@ class FNAHelpers:
             print(f"INFO: Elements at {path} to be present")
             element = elements[2]
             radio = element.find_elements(By.CSS_SELECTOR, "ion-radio")
-            driver.execute_script("arguments[0].scrollIntoView(true);", radio[0])
-            driver.execute_script("arguments[0].click();", radio[0])
+            print(f"INFO: Elements radio {radio} to be present")
 
-            value = map.get(Column.MONTHLY_DISPOSABLE_INCOME)
-            xpath = XPath.MONTHLY_DISPOSABLE_INCOME
-            click(driver, xpath)
-            time.sleep(1)
-            click(driver, xpath)
-            NumPad.click_number(driver, overlay_seq, num_pad_seq, value)            
+            if value in ('a', 'b', 'c', 'd', 'e'):
+                element = elements[3]
+                radio = element.find_elements(By.CSS_SELECTOR, "ion-radio")
+                print(f"INFO: Clicking radio button for value a-e radio: {value}")
+                driver.execute_script("arguments[0].scrollIntoView(true);", radio[0])
+                driver.execute_script("arguments[0].click();", radio[0])
+
+                print(f"INFO: Clicking radio button for value a-e: {value}")
+                elements = driver.find_elements(By.CSS_SELECTOR, path)
+                element = elements[4]
+                radio = element.find_elements(By.CSS_SELECTOR, "ion-radio")
+                if value in ('a', 'b', 'c', 'd', 'e'):
+                    index = ord(value) - ord('a')  # Calculate index based on 'a' = 0, 'b' = 1, etc.
+                    print(f"INFO: Clicking radio button for value a-e: {value} index: {index}")
+                    if index < len(radio):
+                        driver.execute_script("arguments[0].scrollIntoView(true);", radio[index])
+                        driver.execute_script("arguments[0].click();", radio[index])
+                        time.sleep(1)
+                        driver.execute_script("arguments[0].click();", radio[index])
+
+            else:
+                driver.execute_script("arguments[0].scrollIntoView(true);", radio[0])
+                driver.execute_script("arguments[0].click();", radio[0])
+                xpath = XPath.MONTHLY_DISPOSABLE_INCOME
+                click(driver, xpath)
+                time.sleep(1)
+                click(driver, xpath)
+                NumPad.click_number(driver, overlay_seq, num_pad_seq, value)
 
             time.sleep(5)
         except Exception as e:
-            print(f"ERROR: Failed to set income source - {str(e)}")
+            print(f"ERROR: Failed to set monthly disposable income - {str(e)}")
+            raise
+
+    @staticmethod
+    def set_payment_income_ratio(driver, map):
+        try:
+            wait = WebDriverWait(driver, 10, 0.5)
+            path = "ion-radio-group"
+
+            value = map.get(Column.PAYMENT_INCOME_RATIO)
+
+            element = wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, path)))
+            elements = driver.find_elements(By.CSS_SELECTOR, path)
+            element = elements[5]
+            radio = element.find_elements(By.CSS_SELECTOR, "ion-radio")
+            
+            driver.execute_script("arguments[0].scrollIntoView(true);", radio[0])
+            driver.execute_script("arguments[0].click();", radio[0])
+            time.sleep(1)
+            driver.execute_script("arguments[0].click();", radio[0])
+        except Exception as e:
+            print(f"ERROR: Failed to set payment income ratio - {str(e)}")
+            raise
+        time.sleep(5)
+
+    @staticmethod
+    def set_payment_period(driver, map):
+        try:
+            wait = WebDriverWait(driver, 10, 0.5)
+            path = "ion-radio-group"
+
+            value = map.get(Column.PAYMENT_PERIOD)
+
+            element = wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, path)))
+            elements = driver.find_elements(By.CSS_SELECTOR, path)
+            element = elements[6]
+            radio = element.find_elements(By.CSS_SELECTOR, "ion-radio")
+            
+            driver.execute_script("arguments[0].scrollIntoView(true);", radio[0])
+            driver.execute_script("arguments[0].click();", radio[0])
+            time.sleep(1)
+            driver.execute_script("arguments[0].click();", radio[0])
+        except Exception as e:
+            print(f"ERROR: Failed to set payment period - {str(e)}")
+            raise
+        time.sleep(5)
+
+    @staticmethod
+    def set_assets(driver, map):
+        try:
+            value = map.get(Column.ASSETS)
+            print(f"INFO: Setting assets with value: {value}")
+
+            # Split the value string and convert to element indices
+            objectives = [x.strip().lower() for x in value.split(',')]
+            indices = [OptionConstants.ASSETS_OPTIONs[obj] for obj in objectives if obj in OptionConstants.ASSETS_OPTIONs]
+
+            print(f"INFO: Indices to click: {indices}")
+
+            wait = WebDriverWait(driver, 10, 0.5)
+            path = "ion-list"
+
+            wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, path)))
+            checkbox_lists = driver.find_elements(By.CSS_SELECTOR, path)
+            print(f"INFO: Get 2nd Checkbox List")
+            checkbox_list2 = checkbox_lists[1]
+
+            # element = wait.until(
+            #     EC.presence_of_element_located((By.CSS_SELECTOR, path)))
+            print(f"INFO: Get checkbox")
+            elements = checkbox_list2.find_elements(By.CSS_SELECTOR, "ion-checkbox")
+            print(f"INFO: Elements at {elements} to be present")
+            # elements = driver.find_elements(By.CSS_SELECTOR, path)
+            
+
+            # Click each selected objective
+            for index in indices:
+                print(f"INFO: Clicking objective at index {index}")
+                if index < len(elements):
+                    try:
+                        checkbox_lists = driver.find_elements(By.CSS_SELECTOR, path) 
+                        checkbox_list2 = checkbox_lists[1]
+                        elements2 = checkbox_list2.find_elements(By.CSS_SELECTOR, "ion-checkbox")
+                        element = elements2[index]
+                        driver.execute_script("arguments[0].scrollIntoView(true);", element)
+                        # Locate element again after scrolling
+                        elements2 = checkbox_list2.find_elements(By.CSS_SELECTOR, "ion-checkbox")
+                        element = elements2[index]
+                        driver.execute_script("arguments[0].click();", element)
+                        time.sleep(1)
+                        # Locate element again
+                        elements2 = checkbox_list2.find_elements(By.CSS_SELECTOR, "ion-checkbox")
+                        element = elements2[index]
+                        driver.execute_script("arguments[0].click();", element)
+                    except StaleElementReferenceException:
+                        print(f"ERROR: Stale element reference exception for index {index}")
+                    time.sleep(1)
+        except Exception as e:
+            print(f"ERROR: Failed to set asset - {str(e)}")
             raise
